@@ -2,7 +2,8 @@
 Entry point scraper prospektus ringkas e-IPO (Python + Google GenAI).
 """
 
-from discovery import scrape_homepage
+from config import ACTIVE_STATUSES
+from discovery import EipoScraperSession
 from pdf_downloader import fetch_if_changed
 from extractor import extract_all_sections, reset_call_counter, RateLimitGuard
 import db
@@ -10,43 +11,49 @@ import db
 
 def run():
     reset_call_counter()
-    emiten_list = scrape_homepage()
 
-    # Hanya proses yang belum listed -- listed/closed di-skip karena
-    # struktur kepemilikan & jadwal sudah final, tidak perlu rescrape harian.
-    active_emiten = [e for e in emiten_list if e.status in ("book building", "offering")]
+    with EipoScraperSession() as session:
+        emiten_list = session.scrape_all()
 
-    print(f"Ditemukan {len(emiten_list)} emiten, {len(active_emiten)} aktif diproses.")
+        uuid_by_ticker: dict[str, str] = {}
+        for emiten in emiten_list:
+            uuid_by_ticker[emiten.ticker] = db.upsert_ipo_basic(emiten)
 
-    for emiten in active_emiten:
-        print(f"\n--- Memproses {emiten.ticker} ({emiten.nama}) [Status: {emiten.status}] ---")
+        active_emiten = [e for e in emiten_list if e.status in ACTIVE_STATUSES]
+        print(
+            f"Ditemukan {len(emiten_list)} emiten, "
+            f"{len(active_emiten)} aktif akan diekstraksi prospektus."
+        )
 
-        try:
-            pdf_bytes, doc_hash = fetch_if_changed(emiten.ipo_id)
-        except ValueError as e:
-            print(f"[SKIP] {emiten.ticker}: {e}")
-            continue
+        for emiten in active_emiten:
+            print(f"\n--- Memproses {emiten.ticker} ({emiten.nama}) [Status: {emiten.status}] ---")
 
-        # Selalu upsert data dasar (nama, logo, ticker, status) meski dokumen tidak berubah
-        ipo_uuid = db.upsert_ipo_basic(emiten)
+            try:
+                pdf_bytes, _doc_hash = fetch_if_changed(emiten.ipo_id, page=session.page)
+            except ValueError as e:
+                print(f"[SKIP] {emiten.ticker}: {e}")
+                continue
 
-        if pdf_bytes is None:
-            print(f"[CACHE] Dokumen {emiten.ticker} tidak berubah, skip parsing PDF.")
-            continue
+            ipo_uuid = uuid_by_ticker[emiten.ticker]
 
-        try:
-            extracted = extract_all_sections(pdf_bytes)
-        except RateLimitGuard as e:
-            print(f"[STOP] {e}")
-            break
+            if pdf_bytes is None:
+                print(f"[CACHE] Dokumen {emiten.ticker} tidak berubah, skip parsing PDF.")
+                continue
 
-        # [POIN 1 PERBAIKAN] Teruskan emiten.status agar kondisional harga_ipo bekerja di db.py
-        db.update_ipo_jadwal_harga_dana(ipo_uuid, extracted["jadwal_harga_dana"], emiten.status)
-        db.replace_shareholders(ipo_uuid, extracted["kepemilikan"])
-        db.update_financial(ipo_uuid, extracted["financial"])
+            try:
+                extracted = extract_all_sections(pdf_bytes)
+            except RateLimitGuard as e:
+                print(f"[STOP] {e}")
+                break
 
-        print(f"[DONE] {emiten.ticker} selesai diproses. "
-              f"API calls terpakai sejauh ini: {extracted['api_calls_used']}")
+            db.update_ipo_jadwal_harga_dana(ipo_uuid, extracted["jadwal_harga_dana"], emiten.status)
+            db.replace_shareholders(ipo_uuid, extracted["kepemilikan"])
+            db.update_financial(ipo_uuid, extracted["financial"])
+
+            print(
+                f"[DONE] {emiten.ticker} selesai diproses. "
+                f"API calls terpakai sejauh ini: {extracted['api_calls_used']}"
+            )
 
     print("\nSelesai.")
 

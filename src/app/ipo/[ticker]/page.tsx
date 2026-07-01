@@ -4,6 +4,7 @@ import InsiderRiskSection from './InsiderRiskSection';
 import MomentumSignalsSection from './MomentumSignalsSection';
 import DecisionBriefSection from './DecisionBriefSection';
 import UnderwriterBadges from './UnderwriterBadges';
+import { getIpoStatus, getIpoStatusLabel } from '@/lib/ipoStatus';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,6 +32,8 @@ export default async function IPODetailPage({ params }: { params: { ticker: stri
     notFound();
   }
 
+  const statusKey = getIpoStatus(ipo);
+  const statusLabel = getIpoStatusLabel(statusKey);
   const statusColor: Record<string, string> = {
     'book building': 'bg-purple-50 text-purple-700 border-purple-200/50',
     'waiting for offering': 'bg-amber-50 text-amber-700 border-amber-200/50',
@@ -38,7 +41,7 @@ export default async function IPODetailPage({ params }: { params: { ticker: stri
     'pre-effective': 'bg-slate-100 text-slate-600 border-slate-200/60',
     'listed': 'bg-emerald-50 text-emerald-700 border-emerald-200/50',
   };
-  const activeColor = statusColor[ipo.status?.toLowerCase().replace(/_/g, ' ') || 'pre-effective'] || 'bg-slate-100 text-slate-600 border-slate-200/60';
+  const activeColor = statusColor[statusKey] || 'bg-slate-100 text-slate-600 border-slate-200/60';
 
   // Dana Maksimal = offered_shares × bb_price_high (batas atas dari prospektus ringkas)
   const danaMaksimalPrice = ipo.bb_price_high ?? ipo.ipo_price ?? ipo.bb_price_low ?? 0;
@@ -167,7 +170,7 @@ export default async function IPODetailPage({ params }: { params: { ticker: stri
           
           {/* Baris Bawah: Status & Sektor */}
           <div className="mt-4 flex flex-wrap gap-2 text-[9px] font-bold uppercase tracking-wider pl-1">
-            <span className={`px-2.5 py-0.5 border rounded-full ${activeColor}`}>{ipo.status}</span>
+            <span className={`px-2.5 py-0.5 border rounded-full ${activeColor}`}>{statusLabel}</span>
             <span className="px-2.5 py-0.5 rounded bg-slate-50 text-slate-600 border border-slate-200/80">
               {ipo.sector || 'SECTOR TBA'}
             </span>

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import IPOCard from './IPOCard';
 import { useRouter } from 'next/navigation';
+import { getIpoStatus } from '@/lib/ipoStatus';
 
 const FILTERS = ['Semua', 'Book Building', 'Waiting For Offering', 'Offering', 'Pre-Effective', 'Listed'];
 
@@ -23,23 +24,7 @@ export default function DashboardClient({ initialIpos }: { initialIpos: any[] })
   };
 
   const filteredIpos = initialIpos.filter(ipo => {
-    // Tentukan status dinamis berdasarkan tanggal untuk kecocokan filter
-    let resolvedStatus = ipo.status?.toLowerCase().replace(/_/g, ' ') || 'pre-effective';
-    const todayStr = new Date().toISOString().split('T')[0];
-    
-    if (ipo.offering_open && ipo.offering_close) {
-      if (todayStr >= ipo.offering_open && todayStr <= ipo.offering_close) {
-        resolvedStatus = 'offering';
-      } else if (todayStr > ipo.offering_close && resolvedStatus !== 'listed') {
-        resolvedStatus = 'pre-effective';
-      }
-    } else if (ipo.bb_open && ipo.bb_close) {
-      if (todayStr >= ipo.bb_open && todayStr <= ipo.bb_close) {
-        resolvedStatus = 'book building';
-      } else if (todayStr > ipo.bb_close && resolvedStatus === 'book building') {
-        resolvedStatus = 'waiting for offering';
-      }
-    }
+    const resolvedStatus = getIpoStatus(ipo);
 
     if (activeFilter !== 'Semua') {
       const activeFilterClean = activeFilter.toLowerCase().replace(/_/g, ' ');

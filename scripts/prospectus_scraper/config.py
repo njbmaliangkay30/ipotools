@@ -18,6 +18,23 @@ LLM_MODEL = "models/gemini-2.5-flash-lite"  # Model aktif dengan quota tersedia
 BASE_URL = "https://e-ipo.co.id"
 HOME_URL = f"{BASE_URL}/id/home"
 PROSPECTUS_URL_TEMPLATE = f"{BASE_URL}/id/pipeline/get-propectus-file?id={{id}}&type=summary"
+BROWSER_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+)
+
+# Headless default True agar bisa jalan dari API/cron/server tanpa display.
+# Set PLAYWRIGHT_HEADLESS=false di .env.local untuk debug lokal (headful).
+PLAYWRIGHT_HEADLESS = os.environ.get("PLAYWRIGHT_HEADLESS", "true").lower() not in ("0", "false", "no")
+
+# Emiten dengan status ini akan diekstraksi prospektus ringkas (Gemini).
+# Listed/closed/canceled/postpone hanya di-update metadata dasar dari homepage.
+ACTIVE_STATUSES = frozenset({
+    "pre-effective",
+    "waiting for offering",
+    "book building",
+    "offering",
+})
 
 # --- Validation thresholds ---
 OWNERSHIP_TOTAL_MIN_SOFT = 98.0   # di bawah ini -> trigger double-call
