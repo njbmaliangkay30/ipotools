@@ -1,0 +1,33 @@
+[
+  {
+    "id": "vgt-select-rpp-1458589585652",
+    "name": "perPageSelect",
+    "class": "footer__row-count__select",
+    "options": [
+      {
+        "value": "10",
+        "text": "10"
+      },
+      {
+        "value": "20",
+        "text": "20"
+      },
+      {
+        "value": "30",
+        "text": "30"
+      },
+      {
+        "value": "40",
+        "text": "40"
+      },
+      {
+        "value": "50",
+        "text": "50"
+      },
+      {
+        "value": "-1",
+        "text": "All"
+      }
+    ]
+  }
+]
