@@ -52,11 +52,17 @@ def _call_llm(pdf_bytes: bytes, prompt: str, max_retries: int = 1) -> dict:
     """
     models_to_try = [
         "models/gemini-3.1-flash-lite",
-        "models/gemini-2.5-flash",
-        "models/gemini-3.5-flash",
-        "models/gemini-3-flash-preview",
+        "models/gemini-2.5-flash-lite",
         "models/gemini-2.0-flash-lite",
-        "models/gemini-2.5-flash-lite"
+        "models/gemini-3.5-flash",
+        "models/gemini-3.0-flash",
+        "models/gemini-2.5-flash",
+        "models/gemini-2.0-flash",
+        "models/gemini-2.5-pro",
+        "models/gemini-3.1-pro",
+        "models/gemini-3-flash-preview",
+        "models/gemini-3.0-flash-preview",
+        "models/gemini-1.5-flash"
     ]
     
     if LLM_MODEL not in models_to_try:

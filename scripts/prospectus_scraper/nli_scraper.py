@@ -82,7 +82,22 @@ def parse_pdf_with_gemini(pdf_path: str) -> typing.Optional[dict]:
             text += f"\n--- PAGE {i+1} ---\n"
             text += reader.pages[i].extract_text()
             
-        models_to_try = [LLM_MODEL, "models/gemini-2.5-flash", "models/gemini-1.5-flash"]
+        models_to_try = [
+            "models/gemini-3.1-flash-lite",
+            "models/gemini-2.5-flash-lite",
+            "models/gemini-2.0-flash-lite",
+            "models/gemini-3.5-flash",
+            "models/gemini-3.0-flash",
+            "models/gemini-2.5-flash",
+            "models/gemini-2.0-flash",
+            "models/gemini-2.5-pro",
+            "models/gemini-3.1-pro",
+            "models/gemini-3-flash-preview",
+            "models/gemini-3.0-flash-preview",
+            "models/gemini-1.5-flash"
+        ]
+        if LLM_MODEL not in models_to_try:
+            models_to_try.insert(0, LLM_MODEL)
         last_error = None
         
         for model_name in models_to_try:
