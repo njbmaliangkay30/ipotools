@@ -71,7 +71,32 @@ export default async function IPODetailPage({ params }: { params: { ticker: stri
     return `${startDay} – ${endDay} ${endMonth} ${endYear}`;
   };
 
-  const signals = Array.isArray(ipo.ipo_signals) ? ipo.ipo_signals[0] : ipo.ipo_signals;
+  let signals = Array.isArray(ipo.ipo_signals) ? ipo.ipo_signals[0] : ipo.ipo_signals;
+  if (!signals) {
+    signals = { ipo_id: ipo.id };
+  }
+
+  // Get fallback sector benchmarks from other listed IPOs in the same sector if current signals is missing NLI averages
+  if (signals && !signals.sector_per && ipo.sector) {
+    const { data: similarIpos } = await supabase
+      .from('ipos')
+      .select('ticker, sector, ipo_signals(sector_per, sector_pbv, subsector_per, subsector_pbv)')
+      .eq('sector', ipo.sector);
+      
+    if (similarIpos && similarIpos.length > 0) {
+      for (const sim of similarIpos) {
+        const simSig = Array.isArray(sim.ipo_signals) ? sim.ipo_signals[0] : (sim.ipo_signals || null);
+        if (simSig && simSig.sector_per) {
+          signals.sector_per = simSig.sector_per;
+          signals.sector_pbv = simSig.sector_pbv;
+          signals.subsector_per = simSig.subsector_per;
+          signals.subsector_pbv = simSig.subsector_pbv;
+          break;
+        }
+      }
+    }
+  }
+
   const financial = Array.isArray(ipo.ipo_financial_highlights) ? ipo.ipo_financial_highlights[0] : ipo.ipo_financial_highlights;
   const insiderRisk = Array.isArray(ipo.ipo_insider_risk) ? ipo.ipo_insider_risk[0] : ipo.ipo_insider_risk;
 
