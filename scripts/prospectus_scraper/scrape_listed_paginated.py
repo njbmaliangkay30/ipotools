@@ -27,26 +27,13 @@ def main():
     fin_res = db.supabase.table("ipo_financial_highlights").select("ipo_id, laba_bersih").execute()
     fin_set = {f["ipo_id"] for f in fin_res.data if f.get("laba_bersih") is not None}
     
-    # Filter emiten listed
-    targets = []
-    target_tickers = set()
-    ticker_to_uuid = {}
-    for ipo in listed_ipos:
-        if args.force or ipo["id"] not in fin_set:
-            targets.append(ipo)
-            target_tickers.add(ipo["ticker"])
-            ticker_to_uuid[ipo["ticker"]] = ipo["id"]
-            
-    if args.force:
-        print(f"[INFO] Mode [FORCE]: Menargetkan seluruh {len(targets)} emiten listed di database.")
-    else:
-        print(f"[INFO] Ditemukan {len(targets)} emiten listed dengan data keuangan kosong di DB:")
-    for t in targets:
-        print(f"  - {t['ticker']} ({t['company_name']})")
-        
-    if not targets:
-        print("[INFO] Tidak ada emiten listed yang perlu diproses. Selesai.")
-        return
+    # Targetkan seluruh emiten listed untuk sinkronisasi metadata dasar
+    targets = listed_ipos
+    target_tickers = {ipo["ticker"] for ipo in targets}
+    ticker_to_uuid = {ipo["ticker"]: ipo["id"] for ipo in targets}
+    
+    print(f"[INFO] Menargetkan seluruh {len(targets)} emiten listed di database untuk sinkronisasi metadata dasar.")
+    print(f"[INFO] Dari total target, {len(targets) - len(fin_set)} emiten memerlukan ekstraksi PDF keuangan.")
 
     # 2. Mulai sesi Playwright (headless=False agar lolos Cloudflare)
     reset_call_counter()
@@ -141,6 +128,11 @@ def main():
                 
                 db.supabase.table("ipos").update(metadata_payload).eq("id", ipo_uuid).execute()
                 print(f"[DB] Updated basic metadata & eipo_id={ipo_id} untuk {ticker}")
+                
+                # Jika sudah memiliki data keuangan dan tidak force, lewati ekstraksi PDF/Gemini
+                if not args.force and ipo_uuid in fin_set:
+                    print(f"[SKIP] Data keuangan {ticker} sudah lengkap di database. Lewati ekstraksi PDF.")
+                    continue
                 
                 # Download PDF prospektus ringkas
                 try:
