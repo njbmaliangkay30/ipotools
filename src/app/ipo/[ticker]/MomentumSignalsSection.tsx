@@ -37,7 +37,13 @@ export default function MomentumSignalsSection({
 
   // Calculate PE and PBV dynamically
   const finalPrice = ipo.ipo_price || ipo.bb_price_high || ipo.bb_price_low || 0;
-  const marketCap = finalPrice * (ipo.total_shares || 0);
+  const offeredShares = ipo.offered_shares || 0;
+  const publicFloat = ipo.public_float_pct || 0;
+  let totalShares = ipo.total_shares || 0;
+  if (!totalShares && offeredShares && publicFloat) {
+    totalShares = Math.round(offeredShares / (publicFloat / 100));
+  }
+  const marketCap = finalPrice * totalShares;
   const emitenPER = (marketCap && labaBersih && labaBersih > 0) ? (marketCap / labaBersih) : null;
   const emitenPBV = (marketCap && totalEkuitas && totalEkuitas > 0) ? (marketCap / totalEkuitas) : null;
 
