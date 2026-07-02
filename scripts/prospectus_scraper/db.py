@@ -124,13 +124,21 @@ def update_ipo_jadwal_harga_dana(ipo_uuid: str, data: dict, status_emiten: str =
     if penggunaan_dana:
         dana_map = {row["kategori"].lower(): row["pct"] for row in penggunaan_dana}
         insider_payload["penggunaan_dana_raw"] = json.dumps(penggunaan_dana, ensure_ascii=False)
-        insider_payload["pct_dana_pemegang_lama"] = dana_map.get("divestasi") or dana_map.get("pemegang saham lama")
+        val = dana_map.get("divestasi") or dana_map.get("pemegang saham lama")
+        if val is not None:
+            try:
+                insider_payload["pct_dana_pemegang_lama"] = int(round(float(val)))
+            except (ValueError, TypeError):
+                pass
 
     # Tambahkan nominal saham sebagai harga perolehan insider
     penawaran_umum = data.get("penawaran_umum", {})
     nilai_nominal = penawaran_umum.get("nilai_nominal")
-    if nilai_nominal:
-        insider_payload["harga_perolehan_insider"] = nilai_nominal
+    if nilai_nominal is not None:
+        try:
+            insider_payload["harga_perolehan_insider"] = int(round(float(nilai_nominal)))
+        except (ValueError, TypeError):
+            pass
 
     if len(insider_payload) > 1:
         supabase.table("ipo_insider_risk").upsert(
