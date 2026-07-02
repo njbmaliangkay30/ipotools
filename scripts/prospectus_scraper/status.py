@@ -74,6 +74,14 @@ _EXTRACT_STATUS_JS = """
   const scanRoot = (root) => {
     if (!root) return null;
 
+    // 1. Cek seluruh baris text di container terlebih dahulu
+    const lines = (root.innerText || '').split('\\n').map((s) => s.trim()).filter(Boolean);
+    for (let i = 0; i < Math.min(lines.length, 35); i++) {
+      const matched = matchLine(lines[i]);
+      if (matched) return { raw: lines[i], status: matched };
+    }
+
+    // 2. Fallback: cari lewat selector jika ada badge khusus
     const badgeSelectors = [
       '.badge',
       '[class*="badge"]',
@@ -89,20 +97,12 @@ _EXTRACT_STATUS_JS = """
       }
     }
 
-    const lines = (root.innerText || '').split('\\n').map((s) => s.trim()).filter(Boolean);
-    for (let i = 0; i < Math.min(lines.length, 35); i++) {
-      const lower = lines[i].toLowerCase();
-      if (lower === 'status' || lower.startsWith('status ') || lower === 'tahapan ipo') {
-        const matched = matchLine(lines[i + 1]);
-        if (matched) return { raw: lines[i + 1], status: matched };
-      }
-    }
     return null;
   };
 
   if (rootSelector) {
     for (const el of document.querySelectorAll(rootSelector)) {
-      const cardRoot = el.closest('.card') || el.closest('[class*="card"]') || el.parentElement;
+      const cardRoot = el.closest('.pricing-box') || el.closest('.card') || el.closest('[class*="card"]') || el.closest('[class*="pricing"]') || el.parentElement.parentElement || el.parentElement;
       const matched = scanRoot(cardRoot || el);
       if (matched) return matched;
     }

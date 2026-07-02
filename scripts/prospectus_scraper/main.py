@@ -2,6 +2,7 @@
 Entry point scraper prospektus ringkas e-IPO (Python + Google GenAI).
 """
 
+import sys
 from config import ACTIVE_STATUSES
 from discovery import EipoScraperSession
 from pdf_downloader import fetch_if_changed
@@ -10,6 +11,7 @@ import db
 
 
 def run():
+    metadata_only = "--metadata-only" in sys.argv
     reset_call_counter()
 
     with EipoScraperSession() as session:
@@ -18,6 +20,10 @@ def run():
         uuid_by_ticker: dict[str, str] = {}
         for emiten in emiten_list:
             uuid_by_ticker[emiten.ticker] = db.upsert_ipo_basic(emiten)
+
+        if metadata_only:
+            print("[INFO] Metadata-only sync completed successfully.")
+            return
 
         active_emiten = [e for e in emiten_list if e.status in ACTIVE_STATUSES]
         print(

@@ -4,6 +4,7 @@ Mengambil daftar emiten dan status tahapan IPO dari homepage e-IPO serta halaman
 """
 
 import re
+import time
 from dataclasses import dataclass
 
 from playwright.sync_api import Page, sync_playwright
@@ -203,23 +204,28 @@ class EipoScraperSession:
             raise RuntimeError("Browser session belum dibuka.")
         return self._page
 
-    def _load_page(self, url: str) -> bool:
-        try:
-            self.page.goto(url, wait_until="domcontentloaded", timeout=30000)
-            self.page.wait_for_timeout(1500)
-            return True
-        except Exception as e:
-            print(f"[ERROR] Gagal membuka halaman {url}: {e}")
-            return False
+    def _load_page(self, url: str, retries: int = 3) -> bool:
+        for attempt in range(1, retries + 1):
+            try:
+                self.page.goto(url, wait_until="domcontentloaded", timeout=45000)
+                self.page.wait_for_timeout(1500)
+                return True
+            except Exception as e:
+                print(f"[WARNING] Gagal membuka halaman {url} (Percobaan {attempt}/{retries}): {e}")
+                if attempt < retries:
+                    time.sleep(2 * attempt)
+        print(f"[ERROR] Gagal membuka halaman {url} setelah {retries} percobaan.")
+        return False
 
-    def scrape_detail(self, url_or_slug: str) -> EmitenSummary | None:
+    def scrape_detail(self, url_or_slug: str, status: str | None = None) -> EmitenSummary | None:
         url = _resolve_detail_url(url_or_slug)
         if not url:
             return None
         if not self._load_page(url):
             return None
 
-        status = extract_status_from_page(self.page)
+        if status is None:
+            status = extract_status_from_page(self.page)
         text = self.page.locator("body").inner_text()
         return _parse_detail_from_text(text, url, status=status)
 
@@ -242,9 +248,22 @@ class EipoScraperSession:
         unique_links = sorted(set(links))
         print(f"[DISCOVERY] Ditemukan {len(unique_links)} halaman detail emiten.")
 
+        # 1. Ambil status emiten dari homepage untuk setiap unique link
+        status_by_ipo_id: dict[str, str] = {}
+        for link in unique_links:
+            parsed = _parse_ipo_url(link)
+            if parsed:
+                ipo_id = parsed[0]
+                selector = f'a[href*="/id/ipo/{ipo_id}/"]'
+                status_by_ipo_id[ipo_id] = extract_status_from_page(self.page, root_selector=selector)
+
+        # 2. Proses detail emiten dengan status homepage
         for i, link in enumerate(unique_links, start=1):
-            print(f"[DISCOVERY] ({i}/{len(unique_links)}) {link}")
-            summary = self.scrape_detail(link)
+            parsed = _parse_ipo_url(link)
+            ipo_id = parsed[0] if parsed else ""
+            status = status_by_ipo_id.get(ipo_id)
+            print(f"[DISCOVERY] ({i}/{len(unique_links)}) {link} [Homepage Status: {status}]")
+            summary = self.scrape_detail(link, status=status)
             if summary:
                 results.append(summary)
 

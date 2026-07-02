@@ -16,16 +16,25 @@ export async function GET(request: Request) {
       ? path.join(process.cwd(), 'scripts', 'prospectus_scraper', 'venv', 'Scripts', 'python.exe')
       : path.join(process.cwd(), 'scripts', 'prospectus_scraper', 'venv', 'bin', 'python');
 
-    console.log(`[API] Menjalankan E-IPO Scraper (Python + Google GenAI)...`);
-    const { stdout: stdout1, stderr: stderr1 } = await execPromise(`"${pythonExe}" "${eipoScriptPath}"`, {
-      timeout: 900000, 
+    console.log(`[API] Menjalankan E-IPO Scraper (Metadata-only)...`);
+    await execPromise(`"${pythonExe}" "${eipoScriptPath}" --metadata-only`, {
+      timeout: 120000, 
       maxBuffer: 1024 * 1024 * 10
     });
     
     console.log(`[API] Menjalankan IDX NLI Scraper...`);
     const { stdout: stdout2, stderr: stderr2 } = await execPromise(`node "${nliScriptPath}" ${years}`, {
-      timeout: 900000, 
+      timeout: 120000, 
       maxBuffer: 1024 * 1024 * 10
+    });
+
+    console.log(`[API] Memulai E-IPO Scraper (Full PDF Extraction) di background...`);
+    exec(`"${pythonExe}" "${eipoScriptPath}"`, (err, stdout, stderr) => {
+      if (err) {
+        console.error("[API Background Error] E-IPO Full Scraper failed:", err);
+      } else {
+        console.log("[API Background Success] E-IPO Full Scraper completed.");
+      }
     });
     
     // Parse result dari stdout2 (NLI Scraper) karena NLI berjalan terakhir
