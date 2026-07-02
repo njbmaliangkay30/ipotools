@@ -43,7 +43,7 @@ OWNERSHIP_TOTAL_MIN_HARD = 95.0   # di luar ini -> reject total
 OWNERSHIP_TOTAL_MAX_HARD = 105.0
 
 # --- Rate limit guard ---
-MAX_API_CALLS_PER_RUN = 25
+MAX_API_CALLS_PER_RUN = 100
 
 # --- Local storage untuk hash PDF (hindari re-parse dokumen yang sama) ---
 PDF_CACHE_DIR = "./pdf_cache"
