@@ -104,9 +104,43 @@ def main():
                 matched_count += 1
                 ipo_uuid = ticker_to_uuid[ticker]
                 
-                # Update eipo_id di database
-                db.supabase.table("ipos").update({"eipo_id": ipo_id}).eq("id", ipo_uuid).execute()
-                print(f"[DB] Updated eipo_id={ipo_id} untuk {ticker}")
+                # Update basic metadata di database agar data detail lengkap dan tidak ada null
+                metadata_payload = {
+                    "eipo_id": ipo_id,
+                }
+                if summary.logo_url:
+                    metadata_payload["logo_url"] = summary.logo_url
+                if summary.sector:
+                    metadata_payload["sector"] = summary.sector
+                if summary.website:
+                    metadata_payload["website"] = summary.website
+                if summary.underwriters:
+                    metadata_payload["underwriters"] = summary.underwriters
+                if summary.price:
+                    metadata_payload["ipo_price"] = summary.price
+                if summary.offered_shares:
+                    metadata_payload["offered_shares"] = summary.offered_shares
+                if summary.public_float_pct:
+                    metadata_payload["public_float_pct"] = summary.public_float_pct
+                if summary.bb_price_low:
+                    metadata_payload["bb_price_low"] = summary.bb_price_low
+                if summary.bb_price_high:
+                    metadata_payload["bb_price_high"] = summary.bb_price_high
+                if summary.bb_open:
+                    metadata_payload["bb_open"] = summary.bb_open
+                if summary.bb_close:
+                    metadata_payload["bb_close"] = summary.bb_close
+                if summary.offering_open:
+                    metadata_payload["offering_open"] = summary.offering_open
+                if summary.offering_close:
+                    metadata_payload["offering_close"] = summary.offering_close
+                if summary.distribution_date:
+                    metadata_payload["distribution_date"] = summary.distribution_date
+                if summary.listing_date:
+                    metadata_payload["listing_date"] = summary.listing_date
+                
+                db.supabase.table("ipos").update(metadata_payload).eq("id", ipo_uuid).execute()
+                print(f"[DB] Updated basic metadata & eipo_id={ipo_id} untuk {ticker}")
                 
                 # Download PDF prospektus ringkas
                 try:
