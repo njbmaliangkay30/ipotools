@@ -536,6 +536,7 @@ export default async function IPODetailPage({ params }: { params: { ticker: stri
               ipo={ipo} 
               signals={Array.isArray(ipo.ipo_signals) ? ipo.ipo_signals[0] : ipo.ipo_signals} 
               underwriters={ipo.ipo_underwriters} 
+              financial={financial}
           />
 
         </div>

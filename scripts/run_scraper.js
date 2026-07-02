@@ -33,6 +33,13 @@ const FIELD_PATTERNS = {
     uw1_name: /GU1\s*Underwriter1\s*[\d.,]+%\s*\|(.+?)(?:\n|GU2)/i,
     public_pct: /SHIP\s*Public Shares\s*([\d.,]+)%/i,
     par_value: /SH2\s*Par Value\s*([\d.,]+)/i,
+    
+    // New Benchmark fields
+    shareholders_count: /B13\s*Shareholders Through IPO\s*([\d,.]+)\s*Parties/i,
+    sector_per: /D10\s*Sector PER\s*([\d.,\-]+)/i,
+    sector_pbv: /D11\s*Sector PBV\s*([\d.,\-]+)/i,
+    subsector_per: /D12\s*Sub Sector PER\s*([\d.,\-]+)/i,
+    subsector_pbv: /D13\s*Sub Sector PBV\s*([\d.,\-]+)/i,
 };
 
 function cleanNum(val) {
@@ -170,7 +177,12 @@ async function run() {
                           .from('ipo_signals')
                           .upsert({
                             ipo_id: ipo.id,
-                            os_ratio: osRatio
+                            os_ratio: osRatio,
+                            sector_per: cleanNum(record.sector_per),
+                            sector_pbv: cleanNum(record.sector_pbv),
+                            subsector_per: cleanNum(record.subsector_per),
+                            subsector_pbv: cleanNum(record.subsector_pbv),
+                            shareholders_count: cleanNum(record.shareholders_count)
                           }, { onConflict: 'ipo_id' });
 
                          if (insiderCost) {
