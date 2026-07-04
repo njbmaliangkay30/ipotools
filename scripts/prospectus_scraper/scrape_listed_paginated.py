@@ -95,6 +95,8 @@ def main():
                 metadata_payload = {
                     "eipo_id": ipo_id,
                 }
+                if summary.status:
+                    metadata_payload["status"] = summary.status
                 if summary.logo_url:
                     metadata_payload["logo_url"] = summary.logo_url
                 if summary.sector:
